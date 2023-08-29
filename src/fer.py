@@ -21,9 +21,10 @@ class FaceDetectionGenerator:
         fh = int(self.vc.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
         vc_fps = self.vc.get(cv2.CAP_PROP_FPS)
         print(f"VC {id} - FPS = {vc_fps}")
-        # fourcc = cv.VideoWriter_fourcc(*'XVID')
+        # fourcc = 0
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         # self.vw = cv2.VideoWriter(s_path, 0, 10.0, (fw, fh))
-        self.vw = cv2.VideoWriter(s_path, 0, vc_fps * 2.0, (fw, fh))
+        self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps * 2.0, (fw, fh))
         self.face_cascade = cv2.CascadeClassifier(c_path)
         self.max_num_frame = max_num_frame
     
