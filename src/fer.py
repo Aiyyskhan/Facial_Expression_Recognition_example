@@ -13,6 +13,8 @@ EMOTION_DICT = {0: 'neutral', 1: 'happiness', 2: 'surprise', 3: 'sadness', 4: 'a
 DTYPE = torch.float32
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+print(f"Device: {DEVICE}")
+
 class FaceDetectionGenerator:
     def __init__(self, id: int, v_path: str, s_path: str, c_path: str, max_num_frame: int): # s_path: str, c_path: str, fps: int, frame_size: tuple | list, max_num_frame: int):
         self.id = id
@@ -91,15 +93,16 @@ class FERNN_model:
                 pred_cls.append(self.emotion_dict[c])
             return top_v.numpy().ravel(), pred_cls
 
+
 async def main(ulf_path_list: list, pf_path_list: list) -> None:
     net = FERNN_model(NN_W_PATH, EMOTION_DICT, DEVICE, DTYPE)
 
     fd_lst = [
-        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, 50)()
+        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, 100)()
         for i, p in enumerate(ulf_path_list)
     ]
     
-    for _ in range(50):
+    for _ in range(100):
         id_lst = []
         face_lst = []
         faces_locs = []
