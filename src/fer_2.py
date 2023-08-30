@@ -38,8 +38,8 @@ class FaceDetectionGenerator:
         fh = int(self.vc.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
         vc_fps = self.vc.get(cv2.CAP_PROP_FPS)
         print(f"VC {id} - FPS = {vc_fps}")
-        fourcc = 0
-        # fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # fourcc = 0
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         # self.vw = cv2.VideoWriter(s_path, 0, 10.0, (fw, fh))
         self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps * 2.0, (fw, fh))
         self.face_cascade = cv2.CascadeClassifier(c_path)
@@ -103,14 +103,13 @@ class FaceDetectionGenerator:
         self.vw.release()
 
 async def main(ulf_path_list: list, pf_path_list: list) -> None:
-    # net = FERNN_model(NN_W_PATH, EMOTION_DICT, DEVICE, DTYPE)
 
     fd_lst = [
-        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, 50)()
+        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, 100)()
         for i, p in enumerate(ulf_path_list)
     ]
     
-    for _ in range(50):
+    for _ in range(100):
         marked_frame_lst = []
         for g in fd_lst:
             try:
@@ -118,17 +117,3 @@ async def main(ulf_path_list: list, pf_path_list: list) -> None:
                 marked_frame_lst.append(result)
             except StopAsyncIteration:
                 result = None
-
-        # объединение картинок обнаруженных лиц в единый массив
-        # face_tensor = torch.tensor(np.concatenate(face_lst, axis=0), device=DEVICE, dtype=DTYPE)
-
-        # работа нейросети
-        # pred_val, pred_cls = net(face_tensor)
-
-        # добавление текстовых меток о распознанных эмоциях в кадр
-        # и занесение результатов работы нейросети в общий словарь
-        # for i, c in enumerate(pred_cls):
-        #     fid = id_lst[i]
-        #     cv2.putText(marked_frame_lst[fid]["marked frame"], c, faces_locs[i][:2], cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 1)
-        #     marked_frame_lst[fid]["pred values"].append(pred_val[i])
-        #     marked_frame_lst[fid]["pred classes"].append(c)

@@ -15,6 +15,25 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 print(f"Device: {DEVICE}")
 
+
+class FERNN_model:
+    def __init__(self, model_path, em_dict, device=None, dtype=None):
+        self.model = NN(device=device, dtype=dtype)
+        self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage), strict=False)
+        self.emotion_dict = em_dict
+
+    def __call__(self, img):
+        pred_cls = []
+        with torch.no_grad():
+            self.model.eval()
+            log_ps = self.model(img).cpu()
+            ps = torch.exp(log_ps)
+            top_v, top_class = ps.topk(1, dim=1)
+            for c in top_class.numpy().ravel():
+                pred_cls.append(self.emotion_dict[c])
+            return top_v.numpy().ravel(), pred_cls
+
+
 class FaceDetectionGenerator:
     def __init__(self, id: int, v_path: str, s_path: str, c_path: str, max_num_frame: int): # s_path: str, c_path: str, fps: int, frame_size: tuple | list, max_num_frame: int):
         self.id = id
@@ -74,24 +93,6 @@ class FaceDetectionGenerator:
         
         self.vc.release()
         self.vw.release()
-
-
-class FERNN_model:
-    def __init__(self, model_path, em_dict, device=None, dtype=None):
-        self.model = NN(device=device, dtype=dtype)
-        self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage), strict=False)
-        self.emotion_dict = em_dict
-
-    def __call__(self, img):
-        pred_cls = []
-        with torch.no_grad():
-            self.model.eval()
-            log_ps = self.model(img).cpu()
-            ps = torch.exp(log_ps)
-            top_v, top_class = ps.topk(1, dim=1)
-            for c in top_class.numpy().ravel():
-                pred_cls.append(self.emotion_dict[c])
-            return top_v.numpy().ravel(), pred_cls
 
 
 async def main(ulf_path_list: list, pf_path_list: list) -> None:
