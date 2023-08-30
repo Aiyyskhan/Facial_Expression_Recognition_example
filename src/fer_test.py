@@ -1,5 +1,9 @@
+from datetime import datetime
 import asyncio
 import fer
+# import fer_2
+
+start_time = datetime.now()
 
 lst_0 = [
     "test_mov/test_1.mkv",
@@ -14,5 +18,8 @@ lst_1 = [
 
 async def main(uf_lst, pf_lst):
     await fer.main(uf_lst, pf_lst)
+    # await fer_2.main(uf_lst, pf_lst)
 
 asyncio.run(main(lst_0, lst_1))
+
+print(f"Time: {datetime.now() - start_time}")
