@@ -13,6 +13,11 @@ EMOTION_DICT = {0: 'neutral', 1: 'happiness', 2: 'surprise', 3: 'sadness', 4: 'a
 DTYPE = torch.float32
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+torch.set_num_threads(1)
+
+print(f"Device: {DEVICE}")
+print(f"Number of threads: {torch.get_num_threads()}")
+
 
 class FERNN_model:
     def __init__(self, model_path, em_dict, device=None, dtype=None):
@@ -39,7 +44,8 @@ class FaceDetectionGenerator:
         vc_fps = self.vc.get(cv2.CAP_PROP_FPS)
         print(f"VC {id} - FPS = {vc_fps}")
         # fourcc = 0
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         # self.vw = cv2.VideoWriter(s_path, 0, 10.0, (fw, fh))
         self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps * 2.0, (fw, fh))
         self.face_cascade = cv2.CascadeClassifier(c_path)
@@ -102,14 +108,16 @@ class FaceDetectionGenerator:
         self.vc.release()
         self.vw.release()
 
+NUM_FRAME = 1000
+
 async def main(ulf_path_list: list, pf_path_list: list) -> None:
 
     fd_lst = [
-        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, 100)()
+        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, NUM_FRAME)()
         for i, p in enumerate(ulf_path_list)
     ]
     
-    for _ in range(100):
+    for _ in range(NUM_FRAME):
         marked_frame_lst = []
         for g in fd_lst:
             try:
