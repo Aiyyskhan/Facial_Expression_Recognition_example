@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from nn import NN 
 
+NUM_FRAME = 1000
 
 CLASSIFIER_PATH = "./models/haarcascade_frontalface_default.xml"
 NN_W_PATH = "./models/FER_trained_model.pt"
@@ -47,7 +48,7 @@ class FaceDetectionGenerator:
         # fourcc = cv2.VideoWriter_fourcc(*'XVID')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         # self.vw = cv2.VideoWriter(s_path, 0, 10.0, (fw, fh))
-        self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps * 2.0, (fw, fh))
+        self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps, (fw, fh))
         self.face_cascade = cv2.CascadeClassifier(c_path)
         self.max_num_frame = max_num_frame
     
@@ -108,7 +109,6 @@ class FaceDetectionGenerator:
         self.vc.release()
         self.vw.release()
 
-NUM_FRAME = 1000
 
 async def main(ulf_path_list: list, pf_path_list: list) -> None:
 

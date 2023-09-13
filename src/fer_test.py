@@ -1,8 +1,8 @@
 from datetime import datetime
 import asyncio
 
-# import fer
-import fer_2
+import fer as f
+# import fer_2 as f
 
 start_time = datetime.now()
 
@@ -20,8 +20,7 @@ lst_1 = [
 ]
 
 async def main(uf_lst, pf_lst):
-    # await fer.main(uf_lst, pf_lst)
-    await fer_2.main(uf_lst, pf_lst)
+    await f.main(uf_lst, pf_lst)
 
 asyncio.run(main(lst_0, lst_1))
 

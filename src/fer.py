@@ -4,6 +4,8 @@ import torch
 import numpy as np
 from nn import NN 
 
+NUM_FRAME = 1000
+FPS = 10
 
 CLASSIFIER_PATH = "./models/haarcascade_frontalface_default.xml"
 NN_W_PATH = "./models/FER_trained_model.pt"
@@ -13,7 +15,7 @@ EMOTION_DICT = {0: 'neutral', 1: 'happiness', 2: 'surprise', 3: 'sadness', 4: 'a
 DTYPE = torch.float32
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-torch.set_num_threads(2)
+torch.set_num_threads(1)
 
 print(f"Device: {DEVICE}")
 print(f"Number of threads: {torch.get_num_threads()}")
@@ -38,20 +40,20 @@ class FERNN_model:
 
 
 class FaceDetectionGenerator:
-    def __init__(self, id: int, v_path: str, s_path: str, c_path: str, max_num_frame: int): # s_path: str, c_path: str, fps: int, frame_size: tuple | list, max_num_frame: int):
+    def __init__(self, id: int, v_path: str, s_path: str, c_path: str): # s_path: str, c_path: str, fps: int, frame_size: tuple | list, max_num_frame: int):
         self.id = id
         self.vc = cv2.VideoCapture(v_path)
         fw = int(self.vc.get(cv2.CAP_PROP_FRAME_WIDTH) + 0.5)
         fh = int(self.vc.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
+        self.vc.set(cv2.CAP_PROP_FPS, 10)
         vc_fps = self.vc.get(cv2.CAP_PROP_FPS)
         print(f"VC {id} - FPS = {vc_fps}")
         # fourcc = 0
         # fourcc = cv2.VideoWriter_fourcc(*'XVID')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         # self.vw = cv2.VideoWriter(s_path, 0, 10.0, (fw, fh))
-        self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps * 2.0, (fw, fh))
+        self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps, (fw, fh))
         self.face_cascade = cv2.CascadeClassifier(c_path)
-        self.max_num_frame = max_num_frame
     
     async def __call__(self):
         if self.vc.isOpened():
@@ -64,8 +66,10 @@ class FaceDetectionGenerator:
             frame_num = self.vc.get(cv2.CAP_PROP_POS_FRAMES)
             # позиция кадра во времени в миллисекундах
             frame_time = self.vc.get(cv2.CAP_PROP_POS_MSEC)
+
             # перевод цветов в оттенки серого
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
             # обнаружение лиц
             faces_loc = self.face_cascade.detectMultiScale(frame)
 
@@ -91,22 +95,17 @@ class FaceDetectionGenerator:
             # if self.vw.isOpened():
             self.vw.write(frame)
             rval, frame = self.vc.read()
-                
-            if frame_num == self.max_num_frame:
-                break
-        
-        self.vc.release()
-        self.vw.release()
 
-NUM_FRAME = 1000
 
 async def main(ulf_path_list: list, pf_path_list: list) -> None:
     net = FERNN_model(NN_W_PATH, EMOTION_DICT, DEVICE, DTYPE)
 
-    fd_lst = [
-        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH, NUM_FRAME)()
+    fdg_lst = [
+        FaceDetectionGenerator(i, p, pf_path_list[i], CLASSIFIER_PATH) #, NUM_FRAME)
         for i, p in enumerate(ulf_path_list)
     ]
+
+    fdgc_lst = [g() for g in fdg_lst]
     
     for _ in range(NUM_FRAME):
         id_lst = []
@@ -114,9 +113,9 @@ async def main(ulf_path_list: list, pf_path_list: list) -> None:
         faces_locs = []
         marked_frame_lst = []
 
-        for g in fd_lst:
+        for itr in fdgc_lst:
             try:
-                result = await anext(g)
+                result = await anext(itr)
                 for idx, df in enumerate(result["detected faces"]):
                     id_lst.append(result["id"])
                     face_lst.append(df)
@@ -125,16 +124,22 @@ async def main(ulf_path_list: list, pf_path_list: list) -> None:
             except StopAsyncIteration:
                 result = None
 
-        # объединение картинок обнаруженных лиц в единый массив
-        face_tensor = torch.tensor(np.concatenate(face_lst, axis=0), device=DEVICE, dtype=DTYPE)
+        if face_lst:
+            # объединение картинок обнаруженных лиц в единый массив
+            face_tensor = torch.tensor(np.concatenate(face_lst, axis=0), device=DEVICE, dtype=DTYPE)
 
-        # работа нейросети
-        pred_val, pred_cls = net(face_tensor)
+            # работа нейросети
+            pred_val, pred_cls = net(face_tensor)
 
-        # добавление текстовых меток о распознанных эмоциях в кадр
-        # и занесение результатов работы нейросети в общий словарь
-        for i, c in enumerate(pred_cls):
-            fid = id_lst[i]
-            cv2.putText(marked_frame_lst[fid]["marked frame"], c, faces_locs[i][:2], cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 1)
-            marked_frame_lst[fid]["pred values"].append(pred_val[i])
-            marked_frame_lst[fid]["pred classes"].append(c)
+            # добавление текстовых меток о распознанных эмоциях в кадр
+            # и занесение результатов работы нейросети в общий словарь
+            for i, c in enumerate(pred_cls):
+                fid = id_lst[i]
+                cv2.putText(marked_frame_lst[fid]["marked frame"], c, faces_locs[i][:2], cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 1)
+                marked_frame_lst[fid]["pred values"].append(pred_val[i])
+                marked_frame_lst[fid]["pred classes"].append(c)
+
+    for g in fdg_lst:
+        print(f"Id: {g.id} stopped")
+        g.vc.release()
+        g.vw.release()
