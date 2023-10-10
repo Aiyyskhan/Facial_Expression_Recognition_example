@@ -51,7 +51,6 @@ class FaceDetectionGenerator:
         # fourcc = 0
         # fourcc = cv2.VideoWriter_fourcc(*'XVID')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        # self.vw = cv2.VideoWriter(s_path, 0, 10.0, (fw, fh))
         self.vw = cv2.VideoWriter(s_path, fourcc, vc_fps, (fw, fh))
         self.face_cascade = cv2.CascadeClassifier(c_path)
     
