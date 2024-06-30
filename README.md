@@ -1,1 +1,1 @@
-# FER example
+# Facial Expression Recognition example
